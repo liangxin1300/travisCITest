@@ -2,13 +2,18 @@ language: generic
 services:
   - docker
 before_install:
-  - docker pull liangxin1300/tbw_with_systemd
-  - docker run -d --name=hanode1 --hostname hanode1 --privileged -v /sys/fs/cgroup:/sys/fs/cgroup:ro liangxin1300/tbw_with_systemd
-  - docker run -d --name=hanode2 --hostname hanode2 --privileged -v /sys/fs/cgroup:/sys/fs/cgroup:ro liangxin1300/tbw_with_systemd
+  - docker pull liangxin1300/habase
+  - docker run -d --name=hanode1 --hostname hanode1 --privileged -v /sys/fs/cgroup:/sys/fs/cgroup:ro liangxin1300/habase
+  - docker run -d --name=hanode2 --hostname hanode2 --privileged -v /sys/fs/cgroup:/sys/fs/cgroup:ro liangxin1300/habase
   - docker container ls
-  - docker exec -t hanode1 /bin/sh -c "zypper -n install python3 iproute2 which iputils vim tar crmsh; ip addr show"
-  - docker exec -t hanode1 /bin/sh -c "rm -f /run/nologin; echo '172.17.0.2 hanode1\n172.17.0.3 hanode2' >> /etc/hosts"
-  - docker exec -t hanode1 /bin/sh -c "crm cluster init -y; crm_mon -1"
-  - docker exec -t hanode2 /bin/sh -c "zypper -n install python3 iproute2 which iputils vim tar crmsh; ip addr show"
-  - docker exec -t hanode2 /bin/sh -c "rm -f /run/nologin; echo '172.17.0.2 hanode1\n172.17.0.3 hanode2' >> /etc/hosts"
-  - docker exec -t hanode2 /bin/sh -c "crm cluster join -c 172.17.0.2 -y; crm_mon -1"
+
+  - docker exec -t hanode1 /bin/sh -c "zypper -n install python3 iproute2 which iputils vim tar bzip2 crmsh"
+  - docker exec -t hanode1 /bin/sh -c "echo \"172.17.0.3 hanode2\" >> /etc/hosts"
+  - docker exec -t hanode1 /bin/sh -c "crm cluster init -y"
+
+  - docker exec -t hanode2 /bin/sh -c "zypper -n install python3 iproute2 which iputils vim tar bzip2 crmsh"
+  - docker exec -t hanode2 /bin/sh -c "echo \"172.17.0.2 hanode1\" >> /etc/hosts"
+  - docker exec -t hanode2 /bin/sh -c "crm cluster join -c hanode1 -y"
+
+  - docker exec -t hanode1 /bin/sh -c "crm_mon -1"
+  - docker exec -t hanode1 /bin/sh -c "cd /opt;hb_report report_test && tar jxf report_test.tar.bz2 && ls -al report_test"
